@@ -1,4 +1,5 @@
-import 'maker-user/user_test.sol';
+import 'dapple/test.sol';
+import 'erc20/base.sol';
 import 'btc_market.sol';
 
 contract MockBTCRelay {
@@ -24,30 +25,43 @@ contract MockProcessor {
         returns (int256) {}
 }
 
-contract BTCMarketTest is Test
-                           , MakerUserGeneric(new MakerUserMockRegistry())
-{
-    MakerUserTester user1;
-    MakerUserTester user2;
+contract MarketTester is Tester {
+    function doApprove(address who, uint how_much, ERC20 token) {
+        token.approve(who, how_much);
+    }
+}
+
+contract BTCMarketTest is Test {
+    MarketTester user1;
+    MarketTester user2;
+
     BTCMarket otc;
     MockBTCRelay relay;
     BTCTxParser parser;
 
+    ERC20 dai;
+    ERC20 mkr;
+
     function setUp() {
+        dai = new ERC20Base(10 ** 6);
+        mkr = new ERC20Base(10 ** 6);
+
         relay = new MockBTCRelay();
-        otc = new BTCMarket(_M, relay);
+        otc = new BTCMarket(relay);
         parser = new BTCTxParser();
-        user1 = new MakerUserTester(_M);
+
+        user1 = new MarketTester();
         user1._target(otc);
-        user2 = new MakerUserTester(_M);
+        user2 = new MarketTester();
         user2._target(otc);
-        transfer(user1, 100, "DAI");
-        user1.doApprove(otc, 100, "DAI");
-        approve(otc, 30, "MKR");
+
+        dai.transfer(user1, 100);
+        user1.doApprove(otc, 100, dai);
+        mkr.approve(otc, 30);
     }
     function testOfferBuyBitcoin() {
         bytes20 seller_btc_address = 0x123;
-        var id = otc.offer(30, "MKR", 10, "BTC", seller_btc_address);
+        var id = otc.offer(30, mkr, 10, seller_btc_address);
         assertEq(id, 1);
         assertEq(otc.last_offer_id(), id);
 
@@ -55,67 +69,60 @@ contract BTCMarketTest is Test
              buy_how_much, buy_which_token) = otc.getOffer(id);
 
         assertEq(sell_how_much, 30);
-        assertEq32(sell_which_token, "MKR");
+        assertEq(sell_which_token, mkr);
 
         assertEq(buy_how_much, 10);
-        assertEq32(buy_which_token, "BTC");
 
         assertEq20(otc.getBtcAddress(id), seller_btc_address);
     }
-    function testFailOfferSellBitcoin() {
-        otc.offer(30, "BTC", 10, "MKR", 0x11);
-    }
-    function testFailOfferBuyNotBitcoin() {
-        otc.offer(30, "MKR", 10, "DAI", 0x11);
-    }
     function testOfferTransferFrom() {
-        var my_mkr_balance_before = balanceOf(this, "MKR");
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
-        var my_mkr_balance_after = balanceOf(this, "MKR");
+        var my_mkr_balance_before = mkr.balanceOf(this);
+        var id = otc.offer(30, mkr, 10, 0x11);
+        var my_mkr_balance_after = mkr.balanceOf(this);
 
         var transferred = my_mkr_balance_before - my_mkr_balance_after;
 
         assertEq(transferred, 30);
     }
     function testBuyLocking() {
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         assertEq(otc.isLocked(id), false);
         BTCMarket(user1).buy(id);
         assertEq(otc.isLocked(id), true);
     }
     function testCancelUnlocked() {
-        var my_mkr_balance_before = balanceOf(this, "MKR");
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
-        var my_mkr_balance_after = balanceOf(this, "MKR");
+        var my_mkr_balance_before = mkr.balanceOf(this);
+        var id = otc.offer(30, mkr, 10, 0x11);
+        var my_mkr_balance_after = mkr.balanceOf(this);
         otc.cancel(id);
-        var my_mkr_balance_after_cancel = balanceOf(this, "MKR");
+        var my_mkr_balance_after_cancel = mkr.balanceOf(this);
 
         var diff = my_mkr_balance_before - my_mkr_balance_after_cancel;
         assertEq(diff, 0);
     }
     function testFailCancelInactive() {
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         otc.cancel(id);
         otc.cancel(id);
     }
     function testFailCancelNonOwner() {
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         BTCMarket(user1).cancel(id);
     }
     function testFailCancelLocked() {
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         BTCMarket(user1).buy(id);
         otc.cancel(id);
     }
     function testFailBuyLocked() {
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         BTCMarket(user1).buy(id);
         BTCMarket(user2).buy(id);
     }
     function testConfirm() {
         // after calling `buy` and sending bitcoin, buyer should call
         // `confirm` to associate the offer with a bitcoin transaction hash
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         BTCMarket(user1).buy(id);
 
         assertEq(otc.isConfirmed(id), false);
@@ -124,12 +131,12 @@ contract BTCMarketTest is Test
         assertEq(otc.isConfirmed(id), true);
     }
     function testFailConfirmNonBuyer() {
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         BTCMarket(user1).buy(id);
         BTCMarket(user2).confirm(id, 123);
     }
     function testGetOfferByTxHash() {
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x11);
+        var id = otc.offer(30, mkr, 10, 0x11);
         BTCMarket(user1).buy(id);
 
         var txHash = 1234;
@@ -150,7 +157,7 @@ contract BTCMarketTest is Test
         // convert hex txHash to uint
         var txHash = parser.getBytesLE(_txHash, 0, 32);
 
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x8078624453510cd314398e177dcd40dff66d6f9e);
+        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
         BTCMarket(user1).buy(id);
         BTCMarket(user1).confirm(id, txHash);
 
@@ -164,7 +171,7 @@ contract BTCMarketTest is Test
         // convert hex txHash to uint
         var txHash = parser.getBytesLE(_txHash, 0, 32);
 
-        var id_not_enough = otc.offer(30, "MKR", 10, "BTC", 0x1e6022990700109cb82692bb12085381087d5cea);
+        var id_not_enough = otc.offer(30, mkr, 10, 0x1e6022990700109cb82692bb12085381087d5cea);
         BTCMarket(user1).buy(id_not_enough);
         BTCMarket(user1).confirm(id_not_enough, txHash);
 
@@ -177,15 +184,15 @@ contract BTCMarketTest is Test
         // convert hex txHash to uint
         var txHash = parser.getBytesLE(_txHash, 0, 32);
 
-        var my_mkr_balance_before = balanceOf(this, "MKR");
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x8078624453510cd314398e177dcd40dff66d6f9e);
+        var my_mkr_balance_before = mkr.balanceOf(this);
+        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
         BTCMarket(user1).buy(id);
         BTCMarket(user1).confirm(id, txHash);
 
-        var user1_mkr_balance_before = balanceOf(user1, "MKR");
+        var user1_mkr_balance_before = mkr.balanceOf(user1);
         var success = _relayTx();
-        var user1_mkr_balance_after = balanceOf(user1, "MKR");
-        var my_mkr_balance_after = balanceOf(this, "MKR");
+        var user1_mkr_balance_after = mkr.balanceOf(user1);
+        var my_mkr_balance_after = mkr.balanceOf(this);
 
         // return 0 => successful check.
         assertEq(success, 0);
@@ -243,14 +250,14 @@ contract BTCMarketTest is Test
     }
     function testDeposit() {
         // create an offer requiring a 5 DAI deposit
-        var id = otc.offer(30, "MKR", 10, "BTC", 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, "DAI");
+        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
 
         // check deposit is taken when user places order
-        transfer(user1, 100, "DAI");
-        user1.doApprove(otc, 100, "DAI");
-        var user_dai_balance_before_buy = balanceOf(user1, "DAI");
+        dai.transfer(user1, 100);
+        user1.doApprove(otc, 100, dai);
+        var user_dai_balance_before_buy = dai.balanceOf(user1);
         BTCMarket(user1).buy(id);
-        var user_dai_balance_after_buy = balanceOf(user1, "DAI");
+        var user_dai_balance_after_buy = dai.balanceOf(user1);
 
         var user_buy_diff = user_dai_balance_before_buy - user_dai_balance_after_buy;
         assertEq(user_buy_diff, 5);
@@ -263,7 +270,7 @@ contract BTCMarketTest is Test
         // check deposit refunded when user relays good tx */
         var success = _relayTx();
         assertEq(success, 0);
-        var user_dai_balance_after_relay = balanceOf(user1, "DAI");
+        var user_dai_balance_after_relay = dai.balanceOf(user1);
         assertEq(user_dai_balance_after_relay, user_dai_balance_before_buy);
     }
 }

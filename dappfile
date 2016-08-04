@@ -4,6 +4,5 @@ layout:
   sol_sources: contracts
   build_dir: build
 dependencies:
-  makeruser: 0.1.5
-  dappsys: 0.1.2
+  erc20: 1.0.0
   btc-tx: 0.1.0
