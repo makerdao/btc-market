@@ -1,10 +1,20 @@
 import 'dappsys/auth.sol';
 import 'maker-user/user.sol';
 import 'btc-tx/btc_tx.sol';
-import 'assertive.sol';
-import 'fallback_failer.sol';
 
 // BTC-relay integration
+
+contract Assertive {
+    function assert(bool condition) internal {
+        if (!condition) throw;
+    }
+}
+
+contract FallbackFailer {
+    function () {
+        throw;
+    }
+}
 
 contract BTCMarket is MakerUser, FallbackFailer, Assertive {
     struct OfferInfo {
