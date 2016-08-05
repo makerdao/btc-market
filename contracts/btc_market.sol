@@ -37,12 +37,10 @@ contract BTCMarket is FallbackFailer, Assertive {
     mapping( uint256 => uint) public offersByTxHash;
 
     address public trustedRelay;
-    BTCTxParser parser;
 
     function BTCMarket( address BTCRelay)
     {
         trustedRelay = BTCRelay;
-        parser = new BTCTxParser();
     }
 
     function next_id() internal returns (uint) {
@@ -111,9 +109,9 @@ contract BTCMarket is FallbackFailer, Assertive {
         var id = offersByTxHash[txHash];
         var offer = offers[id];
 
-        var sent = parser.checkValueSent(txBytes,
-                                         offer.btc_address,
-                                         offer.buy_how_much);
+        var sent = BTC.checkValueSent(txBytes,
+                                      offer.btc_address,
+                                      offer.buy_how_much);
 
         if (sent) {
             var buyer = offer.locked;

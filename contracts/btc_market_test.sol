@@ -1,12 +1,9 @@
 import 'dapple/test.sol';
 import 'erc20/base.sol';
+import 'btc-tx/btc_tx.sol';
 import 'btc_market.sol';
 
 contract MockBTCRelay {
-    BTCTxParser parser;
-    function MockBTCRelay() {
-        parser = new BTCTxParser();
-    }
     function relayTx(bytes rawTransaction, int256 transactionIndex,
                      int256[] merkleSibling, int256 blockHash,
                      int256 contractAddress)
@@ -14,7 +11,7 @@ contract MockBTCRelay {
     {
         // see testRelayTx for full tx details
         bytes memory _txHash = "\x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c";
-        var txHash = parser.getBytesLE(_txHash, 0, 32);
+        var txHash = BTC.getBytesLE(_txHash, 0, 32);
         var processor = MockProcessor(contractAddress);
         return processor.processTransaction(rawTransaction, txHash);
     }
@@ -37,7 +34,6 @@ contract BTCMarketTest is Test {
 
     BTCMarket otc;
     MockBTCRelay relay;
-    BTCTxParser parser;
 
     ERC20 dai;
     ERC20 mkr;
@@ -48,7 +44,6 @@ contract BTCMarketTest is Test {
 
         relay = new MockBTCRelay();
         otc = new BTCMarket(relay);
-        parser = new BTCTxParser();
 
         user1 = new MarketTester();
         user1._target(otc);
@@ -155,7 +150,7 @@ contract BTCMarketTest is Test {
         // see _relayTx for associated transaction
         bytes memory _txHash = "\x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c";
         // convert hex txHash to uint
-        var txHash = parser.getBytesLE(_txHash, 0, 32);
+        var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
         var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
         BTCMarket(user1).buy(id);
@@ -169,7 +164,7 @@ contract BTCMarketTest is Test {
         // see _relayTx for associated transaction
         bytes memory _txHash = "\x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c";
         // convert hex txHash to uint
-        var txHash = parser.getBytesLE(_txHash, 0, 32);
+        var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
         var id_not_enough = otc.offer(30, mkr, 10, 0x1e6022990700109cb82692bb12085381087d5cea);
         BTCMarket(user1).buy(id_not_enough);
@@ -182,7 +177,7 @@ contract BTCMarketTest is Test {
         // see _relayTx for associated transaction
         bytes memory _txHash = "\x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c";
         // convert hex txHash to uint
-        var txHash = parser.getBytesLE(_txHash, 0, 32);
+        var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
         var my_mkr_balance_before = mkr.balanceOf(this);
         var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
@@ -263,7 +258,7 @@ contract BTCMarketTest is Test {
         assertEq(user_buy_diff, 5);
 
         bytes memory _txHash = "\x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c";
-        var txHash = parser.getBytesLE(_txHash, 0, 32);
+        var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
         BTCMarket(user1).confirm(id, txHash);
 
