@@ -23,11 +23,23 @@ contract MarketTester is Tester {
     }
 }
 
+contract TestableBTCMarket is BTCMarket {
+    uint _time;
+    function TestableBTCMarket(MockBTCRelay relay, uint time_limit)
+        BTCMarket(relay, time_limit) {}
+    function getTime() constant returns (uint) {
+        return _time;
+    }
+    function addTime(uint delta) {
+        _time += delta;
+    }
+}
+
 contract BTCMarketTest is Test {
     MarketTester user1;
     MarketTester user2;
 
-    BTCMarket otc;
+    TestableBTCMarket otc;
     MockBTCRelay relay;
 
     ERC20 dai;
@@ -38,7 +50,7 @@ contract BTCMarketTest is Test {
         mkr = new ERC20Base(10 ** 6);
 
         relay = new MockBTCRelay();
-        otc = new BTCMarket(relay);
+        otc = new TestableBTCMarket(relay, 1 days);
 
         user1 = new MarketTester();
         user1._target(otc);
@@ -276,5 +288,45 @@ contract BTCMarketTest is Test {
         assertEq(success, 0);
         var user_dai_balance_after_relay = dai.balanceOf(user1);
         assertEq(user_dai_balance_after_relay, user_dai_balance_before_buy);
+    }
+    function testReclaim() {
+        // create an offer requiring a 5 DAI deposit
+        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
+
+        dai.transfer(user1, 5);
+        user1.doApprove(otc, 5, dai);
+        BTCMarket(user1).buy(id);
+
+        otc.addTime(2 days);
+
+        var dai_before = dai.balanceOf(this);
+        otc.reclaim(id);
+        assertEq(dai.balanceOf(this) - dai_before, 5);
+    }
+    function testCancelAfterReclaim() {
+        // create an offer requiring a 5 DAI deposit
+        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
+
+        dai.transfer(user1, 5);
+        user1.doApprove(otc, 5, dai);
+        BTCMarket(user1).buy(id);
+
+        otc.addTime(2 days);
+
+        otc.reclaim(id);
+
+        var mkr_before = mkr.balanceOf(this);
+        otc.cancel(id);
+        assertEq(mkr.balanceOf(this) - mkr_before, 30);
+    }
+    function testFailReclaimBeforeElapsed() {
+        // create an offer requiring a 5 DAI deposit
+        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
+
+        dai.transfer(user1, 5);
+        user1.doApprove(otc, 5, dai);
+        BTCMarket(user1).buy(id);
+
+        otc.reclaim(id);
     }
 }

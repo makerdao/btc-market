@@ -15,6 +15,7 @@ contract BTCMarket is BitcoinProcessor {
         ERC20 sell_which_token;
 
         uint buy_how_much;
+        bytes20 btc_address;
 
         uint deposit_how_much;
         ERC20 deposit_which_token;
@@ -22,11 +23,12 @@ contract BTCMarket is BitcoinProcessor {
         address owner;
         bool active;
 
-        bytes20 btc_address;
         address buyer;
         uint256 confirmed;
+        uint buy_time;
     }
     uint public last_offer_id;
+    uint public _time_limit;
     mapping( uint => OfferInfo ) public offers;
     mapping( uint256 => uint) public offersByTxHash;
 
@@ -65,9 +67,15 @@ contract BTCMarket is BitcoinProcessor {
         _
     }
 
-    function BTCMarket( address BTCRelay)
+    modifier only_elapsed(uint id) {
+        assert(isElapsed(id));
+        _
+    }
+
+    function BTCMarket(address BTCRelay, uint time_limit)
     {
         trustedRelay = BTCRelay;
+        _time_limit = time_limit;
     }
 
     function next_id() internal returns (uint) {
@@ -111,6 +119,7 @@ contract BTCMarket is BitcoinProcessor {
     function buy (uint id) only_unlocked(id) only_active(id) {
         var offer = offers[id];
         offer.buyer = msg.sender;
+        offer.buy_time = getTime();
         offer.deposit_which_token.transferFrom( msg.sender, this, offer.deposit_how_much);
     }
     function cancel(uint id) only_unlocked(id) only_owner(id) only_active(id) {
@@ -122,6 +131,14 @@ contract BTCMarket is BitcoinProcessor {
         var offer = offers[id];
         offer.confirmed = txHash;
         offersByTxHash[txHash] = id;
+    }
+    function reclaim(uint id) only_owner(id) only_elapsed(id) only_active(id) {
+        // send deposit to seller and unlock offer
+        var offer = offers[id];
+        offer.buyer = 0x00;
+        var refund = offer.deposit_how_much;
+        offer.deposit_how_much = 0;
+        offer.deposit_which_token.transfer(offer.owner, refund);
     }
     function processTransaction(bytes txBytes, uint256 txHash) only_relay
         returns (int256)
@@ -177,5 +194,18 @@ contract BTCMarket is BitcoinProcessor {
     function isActive(uint id) constant returns (bool) {
         var offer = offers[id];
         return offer.active;
+    }
+    function getTime() constant returns (uint) {
+        return block.timestamp;
+    }
+    function getTimeLimit() constant returns (uint) {
+        return _time_limit;
+    }
+    function getBuyTime(uint id) constant returns (uint) {
+        var offer = offers[id];
+        return offer.buy_time;
+    }
+    function isElapsed(uint id) constant returns (bool) {
+        return (getTime() - getBuyTime(id) > getTimeLimit());
     }
 }
