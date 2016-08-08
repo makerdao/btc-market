@@ -53,6 +53,11 @@ contract BTCMarket is FallbackFailer, Assertive {
         _
     }
 
+    modifier only_relay() {
+        assert(msg.sender == trustedRelay);
+        _
+    }
+
     function BTCMarket( address BTCRelay)
     {
         trustedRelay = BTCRelay;
@@ -115,6 +120,7 @@ contract BTCMarket is FallbackFailer, Assertive {
         offersByTxHash[txHash] = id;
     }
     function processTransaction(bytes txBytes, uint256 txHash)
+        only_relay
         returns (int256)
     {
         var id = offersByTxHash[txHash];

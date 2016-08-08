@@ -142,7 +142,7 @@ contract BTCMarketTest is Test {
         assertEq(otc.getRelay(), relay);
     }
     function testRelayTxNoMatchingOrder() {
-        var fail = _relayTx();
+        var fail = _relayTx(relay);
         // return 1 => unsuccessful check.
         assertEq(fail, 1);
     }
@@ -156,7 +156,7 @@ contract BTCMarketTest is Test {
         BTCMarket(user1).buy(id);
         BTCMarket(user1).confirm(id, txHash);
 
-        var success = _relayTx();
+        var success = _relayTx(relay);
         // return 0 => successful check.
         assertEq(success, 0);
     }
@@ -170,7 +170,7 @@ contract BTCMarketTest is Test {
         BTCMarket(user1).buy(id_not_enough);
         BTCMarket(user1).confirm(id_not_enough, txHash);
 
-        var not_enough = _relayTx();
+        var not_enough = _relayTx(relay);
         assertEq(not_enough, 1);
     }
     function testRelayTxTransfers() {
@@ -185,7 +185,7 @@ contract BTCMarketTest is Test {
         BTCMarket(user1).confirm(id, txHash);
 
         var user1_mkr_balance_before = mkr.balanceOf(user1);
-        var success = _relayTx();
+        var success = _relayTx(relay);
         var user1_mkr_balance_after = mkr.balanceOf(user1);
         var my_mkr_balance_after = mkr.balanceOf(this);
 
@@ -203,7 +203,21 @@ contract BTCMarketTest is Test {
         assertEq(w, 0);
         assertEq(y, 0);
     }
-    function _relayTx() returns (int256) {
+    function testFailRelayTxNonTrusted() {
+        // see _relayTx for associated transaction
+        bytes memory _txHash = "\x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c";
+        // convert hex txHash to uint
+        var txHash = BTC.getBytesLE(_txHash, 0, 32);
+
+        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
+        BTCMarket(user1).buy(id);
+        BTCMarket(user1).confirm(id, txHash);
+
+        var untrusted_relay = new MockBTCRelay();
+        // this should fail
+        var success = _relayTx(untrusted_relay);
+    }
+    function _relayTx(MockBTCRelay relay) returns (int256) {
         // txid: 29c02a5d572930e6d3de6fad45bbfd8d1a73220f86f1adf4cd1de6332c33ac3c
         // txid literal: \x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c
         // value: 12345678
@@ -263,7 +277,7 @@ contract BTCMarketTest is Test {
         BTCMarket(user1).confirm(id, txHash);
 
         // check deposit refunded when user relays good tx */
-        var success = _relayTx();
+        var success = _relayTx(relay);
         assertEq(success, 0);
         var user_dai_balance_after_relay = dai.balanceOf(user1);
         assertEq(user_dai_balance_after_relay, user_dai_balance_before_buy);
