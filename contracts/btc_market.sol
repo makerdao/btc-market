@@ -29,7 +29,7 @@ contract BTCMarket is FallbackFailer, Assertive {
         bool active;
 
         bytes20 btc_address;
-        address locked;
+        address buyer;
         uint256 confirmed;
     }
     uint public last_offer_id;
@@ -44,7 +44,7 @@ contract BTCMarket is FallbackFailer, Assertive {
     }
 
     modifier only_buyer(uint id) {
-        assert(msg.sender == getLocker(id));
+        assert(msg.sender == getBuyer(id));
         _
     }
 
@@ -108,7 +108,7 @@ contract BTCMarket is FallbackFailer, Assertive {
     }
     function buy (uint id) only_unlocked(id) only_active(id) {
         var offer = offers[id];
-        offer.locked = msg.sender;
+        offer.buyer = msg.sender;
         offer.deposit_which_token.transferFrom( msg.sender, this, offer.deposit_how_much);
     }
     function cancel(uint id) only_unlocked(id) only_owner(id) only_active(id) {
@@ -118,7 +118,6 @@ contract BTCMarket is FallbackFailer, Assertive {
     }
     function confirm(uint id, uint256 txHash) only_buyer(id) {
         var offer = offers[id];
-        assert(offer.locked == msg.sender);
         offer.confirmed = txHash;
         offersByTxHash[txHash] = id;
     }
@@ -133,9 +132,8 @@ contract BTCMarket is FallbackFailer, Assertive {
                                       offer.buy_how_much);
 
         if (sent) {
-            var buyer = offer.locked;
-            offer.sell_which_token.transfer(buyer, offer.sell_how_much);
-            offer.deposit_which_token.transfer(buyer, offer.deposit_how_much);
+            offer.sell_which_token.transfer(offer.buyer, offer.sell_how_much);
+            offer.deposit_which_token.transfer(offer.buyer, offer.deposit_how_much);
             delete offers[id];
             return 0;
         } else {
@@ -160,11 +158,11 @@ contract BTCMarket is FallbackFailer, Assertive {
     }
     function isLocked( uint id ) constant returns (bool) {
         var offer = offers[id];
-        return (offer.locked != 0x00);
+        return (offer.buyer != 0x00);
     }
-    function getLocker(uint id) constant returns (address) {
+    function getBuyer(uint id) constant returns (address) {
         var offer = offers[id];
-        return offer.locked;
+        return offer.buyer;
     }
     function isConfirmed( uint id ) constant returns (bool) {
         var offer = offers[id];
