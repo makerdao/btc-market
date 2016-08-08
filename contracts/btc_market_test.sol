@@ -12,14 +12,9 @@ contract MockBTCRelay {
         // see testRelayTx for full tx details
         bytes memory _txHash = "\x29\xc0\x2a\x5d\x57\x29\x30\xe6\xd3\xde\x6f\xad\x45\xbb\xfd\x8d\x1a\x73\x22\x0f\x86\xf1\xad\xf4\xcd\x1d\xe6\x33\x2c\x33\xac\x3c";
         var txHash = BTC.getBytesLE(_txHash, 0, 32);
-        var processor = MockProcessor(contractAddress);
+        var processor = BitcoinProcessor(contractAddress);
         return processor.processTransaction(rawTransaction, txHash);
     }
-}
-
-contract MockProcessor {
-    function processTransaction(bytes txBytes, uint256 txHash)
-        returns (int256) {}
 }
 
 contract MarketTester is Tester {

@@ -3,7 +3,13 @@ import 'btc-tx/btc_tx.sol';
 
 // BTC-relay integration
 
-contract BTCMarket {
+// Contracts that use btc-relay need to conform to the BitcoinProcessor API.
+contract BitcoinProcessor {
+    // called after successful relayTx call on relay contract
+    function processTransaction(bytes txBytes, uint256 txHash) returns (int256);
+}
+
+contract BTCMarket is BitcoinProcessor {
     struct OfferInfo {
         uint sell_how_much;
         ERC20 sell_which_token;
