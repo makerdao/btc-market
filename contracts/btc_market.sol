@@ -125,16 +125,16 @@ contract BTCMarket is FallbackFailer, Assertive {
         returns (int256)
     {
         var id = offersByTxHash[txHash];
-        var offer = offers[id];
+        OfferInfo memory offer = offers[id];
 
         var sent = BTC.checkValueSent(txBytes,
                                       offer.btc_address,
                                       offer.buy_how_much);
 
         if (sent) {
+            delete offers[id];
             offer.sell_which_token.transfer(offer.buyer, offer.sell_how_much);
             offer.deposit_which_token.transfer(offer.buyer, offer.deposit_how_much);
-            delete offers[id];
             return 0;
         } else {
             return 1;
