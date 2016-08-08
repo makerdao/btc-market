@@ -147,7 +147,7 @@ contract BTCMarket is BitcoinProcessor {
         assert(address(sell_which_token) != 0x0);
         assert(buy_how_much_btc > 0);
 
-        sell_which_token.transferFrom(msg.sender, this, sell_how_much);
+        assert(sell_which_token.transferFrom(msg.sender, this, sell_how_much));
 
         OfferInfo memory info;
         info.sell_how_much = sell_how_much;
@@ -172,7 +172,7 @@ contract BTCMarket is BitcoinProcessor {
         var offer = offers[id];
         offer.buyer = msg.sender;
         offer.buy_time = getTime();
-        offer.deposit_which_token.transferFrom(msg.sender, this, offer.deposit_how_much);
+        assert(offer.deposit_which_token.transferFrom(msg.sender, this, offer.deposit_how_much));
     }
     function cancel(uint id)
         only_unlocked(id)
@@ -181,7 +181,7 @@ contract BTCMarket is BitcoinProcessor {
     {
         OfferInfo memory offer = offers[id];
         delete offers[id];
-        offer.sell_which_token.transfer(offer.owner, offer.sell_how_much);
+        assert(offer.sell_which_token.transfer(offer.owner, offer.sell_how_much));
     }
     function confirm(uint id, uint256 txHash)
         only_buyer(id)
@@ -200,7 +200,7 @@ contract BTCMarket is BitcoinProcessor {
         offer.buyer = 0x00;
         var refund = offer.deposit_how_much;
         offer.deposit_how_much = 0;
-        offer.deposit_which_token.transfer(offer.owner, refund);
+        assert(offer.deposit_which_token.transfer(offer.owner, refund));
     }
     function processTransaction(bytes txBytes, uint256 txHash)
         only_relay
@@ -213,8 +213,8 @@ contract BTCMarket is BitcoinProcessor {
 
         if (sent) {
             delete offers[id];
-            offer.sell_which_token.transfer(offer.buyer, offer.sell_how_much);
-            offer.deposit_which_token.transfer(offer.buyer, offer.deposit_how_much);
+            assert(offer.sell_which_token.transfer(offer.buyer, offer.sell_how_much));
+            assert(offer.deposit_which_token.transfer(offer.buyer, offer.deposit_how_much));
             return 0;
         } else {
             return 1;
