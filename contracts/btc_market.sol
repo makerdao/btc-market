@@ -27,12 +27,13 @@ contract BTCMarket is BitcoinProcessor {
         uint256 confirmed;
         uint buy_time;
     }
+
     uint public last_offer_id;
     uint public _time_limit;
+    address public _trusted_relay;
+
     mapping( uint => OfferInfo ) public offers;
     mapping( uint256 => uint) public offersByTxHash;
-
-    address public trustedRelay;
 
     function () {
         throw;
@@ -42,31 +43,82 @@ contract BTCMarket is BitcoinProcessor {
         if (!condition) throw;
     }
 
+    function next_id() internal returns (uint) {
+        last_offer_id++; return last_offer_id;
+    }
+
+    function getRelay() constant returns (address) {
+        return _trusted_relay;
+    }
+    function getTime() constant returns (uint) {
+        return block.timestamp;
+    }
+    function getTimeLimit() constant returns (uint) {
+        return _time_limit;
+    }
+
+    function getOffer(uint id) constant returns (uint, ERC20, uint, bytes20)
+    {
+      var offer = offers[id];
+      return (offer.sell_how_much, offer.sell_which_token,
+              offer.buy_how_much, offer.btc_address);
+    }
+    function getBtcAddress(uint id) constant returns (bytes20) {
+        var offer = offers[id];
+        return offer.btc_address;
+    }
+    function getOfferByTxHash(uint256 txHash) returns (uint id) {
+        return offersByTxHash[txHash];
+    }
+    function getBuyer(uint id) constant returns (address) {
+        var offer = offers[id];
+        return offer.buyer;
+    }
+    function getOwner(uint id) constant returns (address) {
+        var offer = offers[id];
+        return offer.owner;
+    }
+    function getBuyTime(uint id) constant returns (uint) {
+        var offer = offers[id];
+        return offer.buy_time;
+    }
+    function isConfirmed(uint id) constant returns (bool) {
+        var offer = offers[id];
+        return (offer.confirmed != 0);
+    }
+    function isLocked(uint id) constant returns (bool) {
+        var offer = offers[id];
+        return (offer.buyer != 0x00);
+    }
+    function isActive(uint id) constant returns (bool) {
+        var offer = offers[id];
+        return offer.active;
+    }
+    function isElapsed(uint id) constant returns (bool) {
+        return (getTime() - getBuyTime(id) > getTimeLimit());
+    }
+
+
     modifier only_unlocked(uint id) {
         assert(!isLocked(id));
         _
     }
-
     modifier only_buyer(uint id) {
         assert(msg.sender == getBuyer(id));
         _
     }
-
     modifier only_owner(uint id) {
         assert(msg.sender == getOwner(id));
         _
     }
-
     modifier only_relay() {
-        assert(msg.sender == trustedRelay);
+        assert(msg.sender == getRelay());
         _
     }
-
     modifier only_active(uint id) {
         assert(isActive(id));
         _
     }
-
     modifier only_elapsed(uint id) {
         assert(isElapsed(id));
         _
@@ -74,13 +126,10 @@ contract BTCMarket is BitcoinProcessor {
 
     function BTCMarket(address BTCRelay, uint time_limit)
     {
-        trustedRelay = BTCRelay;
+        _trusted_relay = BTCRelay;
         _time_limit = time_limit;
     }
 
-    function next_id() internal returns (uint) {
-        last_offer_id++; return last_offer_id;
-    }
     function offer( uint sell_how_much, ERC20 sell_which_token,
                     uint buy_how_much_btc, bytes20 btc_address )
         returns (uint id)
@@ -158,54 +207,5 @@ contract BTCMarket is BitcoinProcessor {
         } else {
             return 1;
         }
-    }
-    function getOffer( uint id ) constant
-        returns (uint, ERC20, uint, bytes20) {
-      var offer = offers[id];
-      return (offer.sell_how_much, offer.sell_which_token,
-              offer.buy_how_much, offer.btc_address);
-    }
-    function getBtcAddress( uint id ) constant returns (bytes20) {
-        var offer = offers[id];
-        return offer.btc_address;
-    }
-    function getOfferByTxHash( uint256 txHash ) returns (uint id) {
-        return offersByTxHash[txHash];
-    }
-    function getRelay() returns (address) {
-        return trustedRelay;
-    }
-    function isLocked( uint id ) constant returns (bool) {
-        var offer = offers[id];
-        return (offer.buyer != 0x00);
-    }
-    function getBuyer(uint id) constant returns (address) {
-        var offer = offers[id];
-        return offer.buyer;
-    }
-    function isConfirmed( uint id ) constant returns (bool) {
-        var offer = offers[id];
-        return (offer.confirmed != 0);
-    }
-    function getOwner(uint id) constant returns (address) {
-        var offer = offers[id];
-        return offer.owner;
-    }
-    function isActive(uint id) constant returns (bool) {
-        var offer = offers[id];
-        return offer.active;
-    }
-    function getTime() constant returns (uint) {
-        return block.timestamp;
-    }
-    function getTimeLimit() constant returns (uint) {
-        return _time_limit;
-    }
-    function getBuyTime(uint id) constant returns (uint) {
-        var offer = offers[id];
-        return offer.buy_time;
-    }
-    function isElapsed(uint id) constant returns (bool) {
-        return (getTime() - getBuyTime(id) > getTimeLimit());
     }
 }
