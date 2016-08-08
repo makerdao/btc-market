@@ -68,7 +68,7 @@ contract BTCMarketTest is Test {
         assertEq(otc.last_offer_id(), id);
 
         var (sell_how_much, sell_which_token,
-             buy_how_much, buy_which_token) = otc.getOffer(id);
+             buy_how_much, buy_which_token,,) = otc.getOffer(id);
 
         assertEq(sell_how_much, 30);
         assertEq(sell_which_token, mkr);
@@ -206,7 +206,7 @@ contract BTCMarketTest is Test {
         assertEq(balance_diff, 30);
 
         // offer should be deleted
-        var (w, x, y, z) = otc.getOffer(id);
+        var (w, x, y, z,,) = otc.getOffer(id);
         assertEq(w, 0);
         assertEq(y, 0);
     }

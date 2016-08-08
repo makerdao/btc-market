@@ -57,11 +57,12 @@ contract BTCMarket is BitcoinProcessor {
         return _time_limit;
     }
 
-    function getOffer(uint id) constant returns (uint, ERC20, uint, bytes20)
+    function getOffer(uint id) constant returns (uint, ERC20, uint, bytes20, uint, ERC20)
     {
       var offer = offers[id];
       return (offer.sell_how_much, offer.sell_which_token,
-              offer.buy_how_much, offer.btc_address);
+              offer.buy_how_much, offer.btc_address,
+              offer.deposit_how_much, offer.deposit_which_token);
     }
     function getBtcAddress(uint id) constant returns (bytes20) {
         var offer = offers[id];
