@@ -32,8 +32,8 @@ contract BTCMarket is BitcoinProcessor {
     uint public _time_limit;
     address public _trusted_relay;
 
-    mapping( uint => OfferInfo ) public offers;
-    mapping( uint256 => uint) public offersByTxHash;
+    mapping(uint => OfferInfo) public offers;
+    mapping(uint256 => uint) public offersByTxHash;
 
     function () {
         throw;
@@ -140,14 +140,14 @@ contract BTCMarket is BitcoinProcessor {
     }
     function offer( uint sell_how_much, ERC20 sell_which_token,
                     uint buy_how_much_btc, bytes20 btc_address,
-                    uint deposit_how_much, ERC20 deposit_which_token)
+                    uint deposit_how_much, ERC20 deposit_which_token )
         returns (uint id)
     {
         assert(sell_how_much > 0);
         assert(address(sell_which_token) != 0x0);
         assert(buy_how_much_btc > 0);
 
-        sell_which_token.transferFrom( msg.sender, this, sell_how_much);
+        sell_which_token.transferFrom(msg.sender, this, sell_how_much);
 
         OfferInfo memory info;
         info.sell_how_much = sell_how_much;
@@ -165,23 +165,36 @@ contract BTCMarket is BitcoinProcessor {
         offers[id] = info;
         return id;
     }
-    function buy (uint id) only_unlocked(id) only_active(id) {
+    function buy (uint id)
+        only_unlocked(id)
+        only_active(id)
+    {
         var offer = offers[id];
         offer.buyer = msg.sender;
         offer.buy_time = getTime();
-        offer.deposit_which_token.transferFrom( msg.sender, this, offer.deposit_how_much);
+        offer.deposit_which_token.transferFrom(msg.sender, this, offer.deposit_how_much);
     }
-    function cancel(uint id) only_unlocked(id) only_owner(id) only_active(id) {
+    function cancel(uint id)
+        only_unlocked(id)
+        only_owner(id)
+        only_active(id)
+    {
         OfferInfo memory offer = offers[id];
         delete offers[id];
         offer.sell_which_token.transfer(offer.owner, offer.sell_how_much);
     }
-    function confirm(uint id, uint256 txHash) only_buyer(id) {
+    function confirm(uint id, uint256 txHash)
+        only_buyer(id)
+    {
         var offer = offers[id];
         offer.confirmed = txHash;
         offersByTxHash[txHash] = id;
     }
-    function reclaim(uint id) only_owner(id) only_elapsed(id) only_active(id) {
+    function reclaim(uint id)
+        only_owner(id)
+        only_elapsed(id)
+        only_active(id)
+    {
         // send deposit to seller and unlock offer
         var offer = offers[id];
         offer.buyer = 0x00;
@@ -189,15 +202,14 @@ contract BTCMarket is BitcoinProcessor {
         offer.deposit_how_much = 0;
         offer.deposit_which_token.transfer(offer.owner, refund);
     }
-    function processTransaction(bytes txBytes, uint256 txHash) only_relay
+    function processTransaction(bytes txBytes, uint256 txHash)
+        only_relay
         returns (int256)
     {
         var id = offersByTxHash[txHash];
         OfferInfo memory offer = offers[id];
 
-        var sent = BTC.checkValueSent(txBytes,
-                                      offer.btc_address,
-                                      offer.buy_how_much);
+        var sent = BTC.checkValueSent(txBytes, offer.btc_address, offer.buy_how_much);
 
         if (sent) {
             delete offers[id];
