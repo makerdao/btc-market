@@ -164,7 +164,6 @@ contract BTCMarket is BitcoinProcessor {
         info.active = true;
         id = next_id();
         offers[id] = info;
-        return id;
     }
     function buy (uint id)
         only_unlocked(id)
