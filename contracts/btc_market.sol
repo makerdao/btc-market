@@ -3,19 +3,7 @@ import 'btc-tx/btc_tx.sol';
 
 // BTC-relay integration
 
-contract Assertive {
-    function assert(bool condition) internal {
-        if (!condition) throw;
-    }
-}
-
-contract FallbackFailer {
-    function () {
-        throw;
-    }
-}
-
-contract BTCMarket is FallbackFailer, Assertive {
+contract BTCMarket {
     struct OfferInfo {
         uint sell_how_much;
         ERC20 sell_which_token;
@@ -37,6 +25,14 @@ contract BTCMarket is FallbackFailer, Assertive {
     mapping( uint256 => uint) public offersByTxHash;
 
     address public trustedRelay;
+
+    function () {
+        throw;
+    }
+
+    function assert(bool condition) internal {
+        if (!condition) throw;
+    }
 
     modifier only_unlocked(uint id) {
         assert(!isLocked(id));
