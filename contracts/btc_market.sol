@@ -48,6 +48,11 @@ contract BTCMarket is FallbackFailer, Assertive {
         _
     }
 
+    modifier only_owner(uint id) {
+        assert(msg.sender == getOwner(id));
+        _
+    }
+
     function BTCMarket( address BTCRelay)
     {
         trustedRelay = BTCRelay;
@@ -96,10 +101,9 @@ contract BTCMarket is FallbackFailer, Assertive {
         offer.locked = msg.sender;
         offer.deposit_which_token.transferFrom( msg.sender, this, offer.deposit_how_much);
     }
-    function cancel(uint id) only_unlocked(id) {
+    function cancel(uint id) only_unlocked(id) only_owner(id) {
         var offer = offers[id];
         assert(offer.active);
-        assert(msg.sender == offer.owner);
 
         offer.sell_which_token.transfer( msg.sender, offer.sell_how_much);
         delete offers[id];
@@ -157,5 +161,9 @@ contract BTCMarket is FallbackFailer, Assertive {
     function isConfirmed( uint id ) constant returns (bool) {
         var offer = offers[id];
         return (offer.confirmed != 0);
+    }
+    function getOwner(uint id) constant returns (address) {
+        var offer = offers[id];
+        return offer.owner;
     }
 }
