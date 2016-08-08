@@ -100,6 +100,10 @@ contract BTCMarket is BitcoinProcessor {
     }
 
 
+    modifier only_locked(uint id) {
+        assert(isLocked(id));
+        _
+    }
     modifier only_unlocked(uint id) {
         assert(!isLocked(id));
         _
@@ -175,9 +179,9 @@ contract BTCMarket is BitcoinProcessor {
         assert(offer.deposit_which_token.transferFrom(msg.sender, this, offer.deposit_how_much));
     }
     function cancel(uint id)
-        only_unlocked(id)
         only_owner(id)
         only_active(id)
+        only_unlocked(id)
     {
         OfferInfo memory offer = offers[id];
         delete offers[id];
@@ -192,8 +196,9 @@ contract BTCMarket is BitcoinProcessor {
     }
     function reclaim(uint id)
         only_owner(id)
-        only_elapsed(id)
         only_active(id)
+        only_locked(id)
+        only_elapsed(id)
     {
         // send deposit to seller and unlock offer
         var offer = offers[id];
