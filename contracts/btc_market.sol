@@ -113,7 +113,7 @@ contract BTCMarket is FallbackFailer, Assertive {
     }
     function cancel(uint id) only_unlocked(id) only_owner(id) only_active(id) {
         var offer = offers[id];
-        offer.sell_which_token.transfer( msg.sender, offer.sell_how_much);
+        offer.sell_which_token.transfer(offer.owner, offer.sell_how_much);
         delete offers[id];
     }
     function confirm(uint id, uint256 txHash) only_buyer(id) {
