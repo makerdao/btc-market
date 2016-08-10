@@ -56,3 +56,8 @@ market will be notified and Bob will receive his ETH.
 If Bob does not relay his transaction within 1 day then Alice's
 obligation to pay Bob will be voided and she will be able to claim her
 funds *and Bob's deposit*.
+
+```
+market.claim(id)
+market.cancel(id)
+```

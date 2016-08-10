@@ -289,7 +289,7 @@ contract BTCMarketTest is Test {
         var user_dai_balance_after_relay = dai.balanceOf(user1);
         assertEq(user_dai_balance_after_relay, user_dai_balance_before_buy);
     }
-    function testReclaim() {
+    function testClaim() {
         // create an offer requiring a 5 DAI deposit
         var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
 
@@ -300,10 +300,10 @@ contract BTCMarketTest is Test {
         otc.addTime(2 days);
 
         var dai_before = dai.balanceOf(this);
-        otc.reclaim(id);
+        otc.claim(id);
         assertEq(dai.balanceOf(this) - dai_before, 5);
     }
-    function testCancelAfterReclaim() {
+    function testCancelAfterClaim() {
         // create an offer requiring a 5 DAI deposit
         var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
 
@@ -313,13 +313,13 @@ contract BTCMarketTest is Test {
 
         otc.addTime(2 days);
 
-        otc.reclaim(id);
+        otc.claim(id);
 
         var mkr_before = mkr.balanceOf(this);
         otc.cancel(id);
         assertEq(mkr.balanceOf(this) - mkr_before, 30);
     }
-    function testFailReclaimBeforeElapsed() {
+    function testFailClaimBeforeElapsed() {
         // create an offer requiring a 5 DAI deposit
         var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
 
@@ -327,6 +327,6 @@ contract BTCMarketTest is Test {
         user1.doApprove(otc, 5, dai);
         BTCMarket(user1).buy(id);
 
-        otc.reclaim(id);
+        otc.claim(id);
     }
 }

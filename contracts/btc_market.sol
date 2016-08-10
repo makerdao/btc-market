@@ -194,7 +194,7 @@ contract BTCMarket is BitcoinProcessor {
         offer.confirmed = txHash;
         offersByTxHash[txHash] = id;
     }
-    function reclaim(uint id)
+    function claim(uint id)
         only_owner(id)
         only_active(id)
         only_locked(id)
