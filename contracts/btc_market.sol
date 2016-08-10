@@ -170,8 +170,8 @@ contract BTCMarket is BitcoinProcessor {
         offers[id] = info;
     }
     function buy (uint id)
-        only_unlocked(id)
         only_active(id)
+        only_unlocked(id)
     {
         var offer = offers[id];
         offer.buyer = msg.sender;
