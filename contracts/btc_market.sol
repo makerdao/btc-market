@@ -9,7 +9,16 @@ contract BitcoinProcessor {
     function processTransaction(bytes txBytes, uint256 txHash) returns (int256);
 }
 
-contract BTCMarket is BitcoinProcessor {
+contract EventfulMarket {
+    event Offer(uint id, uint sell_how_much, ERC20 indexed sell_which_token, uint buy_how_much, bytes20 btc_address);
+    event Buy(uint id);
+    event Cancel(uint id);
+    event Confirm(uint id, uint256 tx_hash);
+    event Claim(uint id);
+    event Complete(uint id);
+}
+
+contract BTCMarket is BitcoinProcessor, EventfulMarket {
     struct OfferInfo {
         uint sell_how_much;
         ERC20 sell_which_token;
@@ -136,21 +145,21 @@ contract BTCMarket is BitcoinProcessor {
     }
 
     function offer( uint sell_how_much, ERC20 sell_which_token,
-                    uint buy_how_much_btc, bytes20 btc_address )
+                    uint buy_how_much, bytes20 btc_address )
         returns (uint id)
     {
         return offer(sell_how_much, sell_which_token,
-                     buy_how_much_btc, btc_address,
+                     buy_how_much, btc_address,
                      0, sell_which_token);
     }
     function offer( uint sell_how_much, ERC20 sell_which_token,
-                    uint buy_how_much_btc, bytes20 btc_address,
+                    uint buy_how_much, bytes20 btc_address,
                     uint deposit_how_much, ERC20 deposit_which_token )
         returns (uint id)
     {
         assert(sell_how_much > 0);
         assert(address(sell_which_token) != 0x0);
-        assert(buy_how_much_btc > 0);
+        assert(buy_how_much > 0);
 
         assert(sell_which_token.transferFrom(msg.sender, this, sell_how_much));
 
@@ -158,7 +167,7 @@ contract BTCMarket is BitcoinProcessor {
         info.sell_how_much = sell_how_much;
         info.sell_which_token = sell_which_token;
 
-        info.buy_how_much = buy_how_much_btc;
+        info.buy_how_much = buy_how_much;
         info.btc_address = btc_address;
 
         info.deposit_how_much = deposit_how_much;
@@ -168,6 +177,8 @@ contract BTCMarket is BitcoinProcessor {
         info.active = true;
         id = next_id();
         offers[id] = info;
+
+        Offer(id, sell_how_much, sell_which_token, buy_how_much, btc_address);
     }
     function buy (uint id)
         only_active(id)
@@ -177,6 +188,8 @@ contract BTCMarket is BitcoinProcessor {
         offer.buyer = msg.sender;
         offer.buy_time = getTime();
         assert(offer.deposit_which_token.transferFrom(msg.sender, this, offer.deposit_how_much));
+
+        Buy(id);
     }
     function cancel(uint id)
         only_owner(id)
@@ -186,6 +199,8 @@ contract BTCMarket is BitcoinProcessor {
         OfferInfo memory offer = offers[id];
         delete offers[id];
         assert(offer.sell_which_token.transfer(offer.owner, offer.sell_how_much));
+
+        Cancel(id);
     }
     function confirm(uint id, uint256 txHash)
         only_buyer(id)
@@ -193,6 +208,8 @@ contract BTCMarket is BitcoinProcessor {
         var offer = offers[id];
         offer.confirmed = txHash;
         offersByTxHash[txHash] = id;
+
+        Confirm(id, txHash);
     }
     function claim(uint id)
         only_owner(id)
@@ -206,6 +223,8 @@ contract BTCMarket is BitcoinProcessor {
         var refund = offer.deposit_how_much;
         offer.deposit_how_much = 0;
         assert(offer.deposit_which_token.transfer(offer.owner, refund));
+
+        Claim(id);
     }
     function processTransaction(bytes txBytes, uint256 txHash)
         only_relay
@@ -230,5 +249,7 @@ contract BTCMarket is BitcoinProcessor {
         delete offers[id];
         assert(offer.sell_which_token.transfer(offer.buyer, offer.sell_how_much));
         assert(offer.deposit_which_token.transfer(offer.buyer, offer.deposit_how_much));
+
+        Complete(id);
     }
 }
