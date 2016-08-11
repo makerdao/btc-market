@@ -217,12 +217,18 @@ contract BTCMarket is BitcoinProcessor {
         var sent = BTC.checkValueSent(txBytes, offer.btc_address, offer.buy_how_much);
 
         if (sent) {
-            delete offers[id];
-            assert(offer.sell_which_token.transfer(offer.buyer, offer.sell_how_much));
-            assert(offer.deposit_which_token.transfer(offer.buyer, offer.deposit_how_much));
+            complete(id);
             return 0;
         } else {
             return 1;
         }
+    }
+    function complete(uint id)
+        internal
+    {
+        OfferInfo memory offer = offers[id];
+        delete offers[id];
+        assert(offer.sell_which_token.transfer(offer.buyer, offer.sell_how_much));
+        assert(offer.deposit_which_token.transfer(offer.buyer, offer.deposit_how_much));
     }
 }
