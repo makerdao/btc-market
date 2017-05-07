@@ -1,8 +1,0 @@
-name: maker-otc
-version: 0.1.0
-layout:
-  sol_sources: contracts
-  build_dir: build
-dependencies:
-  erc20: 1.0.0
-  btc-tx: 0.1.0

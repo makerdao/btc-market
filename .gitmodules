@@ -1,6 +1,9 @@
-[submodule "dapple_packages/btc-tx"]
-	path = dapple_packages/btc-tx
+[submodule "lib/btc-tx"]
+	path = lib/btc-tx
 	url = https://github.com/rainbeam/solidity-btc-parser
-[submodule "dapple_packages/erc20"]
-	path = dapple_packages/erc20
-	url = https://github.com/nexusdev/erc20
+[submodule "lib/erc20"]
+	path = lib/erc20
+	url = https://github.com/dapphub/erc20
+[submodule "lib/ds-token"]
+	path = lib/ds-token
+	url = https://github.com/dapphub/ds-token

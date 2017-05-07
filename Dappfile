@@ -1,0 +1,4 @@
+name         btc-market
+description  Trade ERC20 tokens for Bitcoin using BTC-Relay
+version      0.1.0
+author       Rain <rainbreak@riseup.net>

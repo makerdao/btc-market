@@ -14,10 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import 'dapple/test.sol';
-import 'erc20/base.sol';
+pragma solidity ^0.4.11;
+
+import 'ds-test/test.sol';
+import 'ds-token/base.sol';
+
 import 'btc-tx/btc_tx.sol';
-import 'btc_market.sol';
+
+import './btc_market.sol';
 
 contract MockBTCRelay {
     function relayTx(bytes rawTransaction, int256 transactionIndex,
@@ -33,7 +37,14 @@ contract MockBTCRelay {
     }
 }
 
-contract MarketTester is Tester {
+contract MarketTester {
+    address _t;
+    function _target(address target) {
+        _t = target;
+    }
+    function () {
+        if(!_t.call(msg.data)) throw;
+    }
     function doApprove(address who, uint how_much, ERC20 token) {
         token.approve(who, how_much);
     }
@@ -51,7 +62,7 @@ contract TestableBTCMarket is BTCMarket {
     }
 }
 
-contract BTCMarketTest is Test {
+contract BTCMarketTest is DSTest {
     MarketTester user1;
     MarketTester user2;
 
@@ -62,8 +73,8 @@ contract BTCMarketTest is Test {
     ERC20 mkr;
 
     function setUp() {
-        dai = new ERC20Base(10 ** 6);
-        mkr = new ERC20Base(10 ** 6);
+        dai = new DSTokenBase(10 ** 6);
+        mkr = new DSTokenBase(10 ** 6);
 
         relay = new MockBTCRelay();
         otc = new TestableBTCMarket(relay, 1 days);
@@ -91,7 +102,7 @@ contract BTCMarketTest is Test {
 
         assertEq(buy_how_much, 10);
 
-        assertEq20(otc.getBtcAddress(id), seller_btc_address);
+        assertEq(otc.getBtcAddress(id), seller_btc_address);
     }
     function testOfferTransferFrom() {
         var my_mkr_balance_before = mkr.balanceOf(this);
@@ -104,9 +115,9 @@ contract BTCMarketTest is Test {
     }
     function testBuyLocking() {
         var id = otc.offer(30, mkr, 10, 0x11);
-        assertEq(otc.isLocked(id), false);
+        assert(!otc.isLocked(id));
         BTCMarket(user1).buy(id);
-        assertEq(otc.isLocked(id), true);
+        assert(otc.isLocked(id));
     }
     function testCancelUnlocked() {
         var my_mkr_balance_before = mkr.balanceOf(this);
@@ -143,10 +154,10 @@ contract BTCMarketTest is Test {
         var id = otc.offer(30, mkr, 10, 0x11);
         BTCMarket(user1).buy(id);
 
-        assertEq(otc.isConfirmed(id), false);
+        assert(!otc.isConfirmed(id));
         var txHash = 1234;
         BTCMarket(user1).confirm(id, txHash);
-        assertEq(otc.isConfirmed(id), true);
+        assert(otc.isConfirmed(id));
     }
     function testFailConfirmNonBuyer() {
         var id = otc.offer(30, mkr, 10, 0x11);
@@ -175,7 +186,7 @@ contract BTCMarketTest is Test {
         // convert hex txHash to uint
         var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
-        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
+        var id = otc.offer(30, mkr, 10, hex"8078624453510cd314398e177dcd40dff66d6f9e");
         BTCMarket(user1).buy(id);
         BTCMarket(user1).confirm(id, txHash);
 
@@ -189,7 +200,7 @@ contract BTCMarketTest is Test {
         // convert hex txHash to uint
         var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
-        var id_not_enough = otc.offer(30, mkr, 10, 0x1e6022990700109cb82692bb12085381087d5cea);
+        var id_not_enough = otc.offer(30, mkr, 10, hex"1e6022990700109cb82692bb12085381087d5cea");
         BTCMarket(user1).buy(id_not_enough);
         BTCMarket(user1).confirm(id_not_enough, txHash);
 
@@ -203,7 +214,7 @@ contract BTCMarketTest is Test {
         var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
         var my_mkr_balance_before = mkr.balanceOf(this);
-        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
+        var id = otc.offer(30, mkr, 10, hex"8078624453510cd314398e177dcd40dff66d6f9e");
         BTCMarket(user1).buy(id);
         BTCMarket(user1).confirm(id, txHash);
 
@@ -232,7 +243,7 @@ contract BTCMarketTest is Test {
         // convert hex txHash to uint
         var txHash = BTC.getBytesLE(_txHash, 0, 32);
 
-        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e);
+        var id = otc.offer(30, mkr, 10, hex"8078624453510cd314398e177dcd40dff66d6f9e");
         BTCMarket(user1).buy(id);
         BTCMarket(user1).confirm(id, txHash);
 
@@ -282,7 +293,7 @@ contract BTCMarketTest is Test {
     }
     function testDeposit() {
         // create an offer requiring a 5 DAI deposit
-        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
+        var id = otc.offer(30, mkr, 10, hex"8078624453510cd314398e177dcd40dff66d6f9e", 5, dai);
 
         // check deposit is taken when user places order
         dai.transfer(user1, 100);
@@ -307,7 +318,7 @@ contract BTCMarketTest is Test {
     }
     function testClaim() {
         // create an offer requiring a 5 DAI deposit
-        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
+        var id = otc.offer(30, mkr, 10, hex"8078624453510cd314398e177dcd40dff66d6f9e", 5, dai);
 
         dai.transfer(user1, 5);
         user1.doApprove(otc, 5, dai);
@@ -321,7 +332,7 @@ contract BTCMarketTest is Test {
     }
     function testCancelAfterClaim() {
         // create an offer requiring a 5 DAI deposit
-        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
+        var id = otc.offer(30, mkr, 10, hex"8078624453510cd314398e177dcd40dff66d6f9e", 5, dai);
 
         dai.transfer(user1, 5);
         user1.doApprove(otc, 5, dai);
@@ -337,7 +348,7 @@ contract BTCMarketTest is Test {
     }
     function testFailClaimBeforeElapsed() {
         // create an offer requiring a 5 DAI deposit
-        var id = otc.offer(30, mkr, 10, 0x8078624453510cd314398e177dcd40dff66d6f9e, 5, dai);
+        var id = otc.offer(30, mkr, 10, hex"8078624453510cd314398e177dcd40dff66d6f9e", 5, dai);
 
         dai.transfer(user1, 5);
         user1.doApprove(otc, 5, dai);

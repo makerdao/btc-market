@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+pragma solidity ^0.4.11;
+
 import 'erc20/erc20.sol';
 import 'btc-tx/btc_tx.sol';
 
@@ -127,31 +129,31 @@ contract BTCMarket is BitcoinProcessor, EventfulMarket {
 
     modifier only_locked(uint id) {
         assert(isLocked(id));
-        _
+        _;
     }
     modifier only_unlocked(uint id) {
         assert(!isLocked(id));
-        _
+        _;
     }
     modifier only_buyer(uint id) {
         assert(msg.sender == getBuyer(id));
-        _
+        _;
     }
     modifier only_owner(uint id) {
         assert(msg.sender == getOwner(id));
-        _
+        _;
     }
     modifier only_relay() {
         assert(msg.sender == getRelay());
-        _
+        _;
     }
     modifier only_active(uint id) {
         assert(isActive(id));
-        _
+        _;
     }
     modifier only_elapsed(uint id) {
         assert(isElapsed(id));
-        _
+        _;
     }
 
     function BTCMarket(address BTCRelay, uint time_limit)
